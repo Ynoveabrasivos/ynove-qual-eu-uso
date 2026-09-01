@@ -603,6 +603,7 @@ function stepDefinition(key, answers) {
     case "operacao": return { key, question: "O que você precisa fazer?", options: OPERACOES };
     case "material": return { key, question: "Em qual material você vai trabalhar?", options: MATERIAIS_POR_OPERACAO[answers.operacao] || ["Outro", "Não sei"] };
     case "equipamento": return { key, question: "Qual equipamento você vai usar?", options: EQUIPAMENTOS_POR_OPERACAO[answers.operacao] || ["Outro", "Não sei"] };
+    case "bitola": return { key, question: "Qual é a bitola da sua esmerilhadeira?", options: BITOLA_ESMERILHADEIRA };
     case "resultado": return { key, question: answers.operacao === "Cortar" ? "O que é mais importante nesse corte?" : "Qual o resultado desejado?", options: RESULTADO_OPCOES[answers.operacao] || ["Não sei"] };
     case "estadoSuperficie": return { key, question: "Como está a superfície agora?", options: ESTADOS_SUPERFICIE };
     case "proximaEtapa": return { key, question: "O que vem depois?", options: PROXIMA_ETAPA };

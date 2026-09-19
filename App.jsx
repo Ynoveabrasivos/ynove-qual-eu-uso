@@ -986,6 +986,7 @@ export default function QualEuUso() {
         confidence: r.confidence || null,
         familia_recomendada: r.familia?.id || r.familias?.map((f) => f.id) || r.principal?.id || null,
         produto_recomendado: r.produtos?.[0]?.id || null,
+        marca_recomendada: r.produtos?.[0]?.marca || null,
         preco: r.produtos?.[0]?.preco || null,
       };
       track(EVENTOS.CONCLUIU, payload);
@@ -1009,7 +1010,9 @@ export default function QualEuUso() {
   }
 
   function handleComprarClick(p) {
-    track(EVENTOS.COMPRAR, { produto: p.id, nome: p.nome, marca: p.marca, preco: p.preco });
+    // "marca" no payload permite filtrar cliques por fabricante no analytics
+    // (ex.: quantos cliques em Merco x Durax) sem criar evento novo.
+    track(EVENTOS.COMPRAR, { produto: p.id, nome: p.nome, marca: p.marca, preco: p.preco, familia: p.familia });
   }
 
   const progressCount = view === "intro" ? 0 : view === "result" ? totalSteps : stepIndex;
@@ -1030,7 +1033,7 @@ export default function QualEuUso() {
             style={{ ...styles.iconBtn, opacity: view === "intro" ? 0.3 : 1, cursor: view === "intro" ? "default" : "pointer" }}>
             <ChevronLeft size={20} color={TOKENS.mute} />
           </button>
-          <YnoveLogo height={36} />
+          <YnoveLogo height={48} />
           <div style={{ width: 36 }} />
         </div>
 
@@ -1046,14 +1049,17 @@ export default function QualEuUso() {
 
         {view === "intro" && (
           <div className="yn-fadein" style={styles.introWrap}>
-            <div style={styles.introMascoteRow}>
-              <Mascote size={112} />
-              <div>
-                <h1 style={styles.introTitleLado}>Não sabe qual abrasivo usar?</h1>
-                <p style={styles.introSub}>
-                  Responda algumas perguntas e encontre o produto certo para o seu trabalho.
-                </p>
+            <div style={styles.introCard}>
+              <div style={styles.mascoteWrap}>
+                <Mascote size={150} />
+                <div style={styles.balao}>
+                  Me conta o que você vai fazer que eu te ajudo a escolher!
+                </div>
               </div>
+              <h1 style={styles.introTitulo}>Não sabe qual abrasivo usar?</h1>
+              <p style={styles.introSub}>
+                Responda algumas perguntas e encontre o produto certo para o seu trabalho.
+              </p>
             </div>
             <button className="yn-btn" style={styles.ctaPrimary} onClick={start}>DESCOBRIR QUAL EU USO</button>
           </div>
@@ -1198,6 +1204,17 @@ function PrecoBRL({ v }) {
   return <span>{v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>;
 }
 
+// Foto do produto vinda do cadastro da Nuvemshop. Se o SKU não tiver
+// campo "imagem", nada é renderizado. Se a URL falhar, some só a foto —
+// o card continua funcionando.
+function FotoProduto({ src, alt }) {
+  const [erro, setErro] = useState(false);
+  if (erro) return null;
+  return (
+    <img src={src} alt={alt} onError={() => setErro(true)} style={styles.fotoProduto} />
+  );
+}
+
 function ProdutoCard({ p, familia, answers, destaque, onComprar, modoLista }) {
   // Em modo lista não existe base técnica para justificar escolha — então
   // não exibimos "por que essa é uma boa escolha". Seria justificativa vazia.
@@ -1210,6 +1227,7 @@ function ProdutoCard({ p, familia, answers, destaque, onComprar, modoLista }) {
         <span style={styles.categoriaTag}>{p.marca}</span>
         {p.diametro && <span style={styles.medidaTag}>{p.diametro}</span>}
       </div>
+      {p.imagem && <FotoProduto src={p.imagem} alt={p.nome} />}
       <div style={styles.produtoNome}>{p.nome}</div>
       <div style={styles.precoLinha}><PrecoBRL v={p.preco} /></div>
 
@@ -1228,7 +1246,7 @@ function ProdutoCard({ p, familia, answers, destaque, onComprar, modoLista }) {
       <a href={urlProduto(p.id)} target="_blank" rel="noopener noreferrer"
          className="yn-btn" style={destaque && !modoLista ? styles.ctaComprar : styles.ctaComprarSec}
          onClick={() => onComprar(p)}>
-        <ShoppingCart size={18} /> COMPRAR NA YNOVE
+        <ShoppingCart size={18} /> VER PRODUTO NA LOJA
       </a>
     </div>
   );
@@ -1518,13 +1536,13 @@ const styles = {
   page: { minHeight: "100vh", background: TOKENS.bg, display: "flex", justifyContent: "center", fontFamily: "'Inter', sans-serif", color: TOKENS.white },
   shell: { width: "100%", maxWidth: 480, minHeight: "100vh", background: TOKENS.bg, display: "flex", flexDirection: "column", padding: "18px 20px 40px" },
   header: { display: "flex", alignItems: "center", justifyContent: "space-between" },
-  iconBtn: { width: 38, height: 38, borderRadius: 9, background: TOKENS.panel, border: `1px solid ${TOKENS.steel}`, display: "flex", alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 40, height: 40, borderRadius: 9, background: TOKENS.panel, border: `1px solid ${TOKENS.steel}`, display: "flex", alignItems: "center", justifyContent: "center" },
   eyebrow: { marginTop: 22, fontFamily: "'Roboto Mono', monospace", fontSize: 12, letterSpacing: "0.14em", color: TOKENS.teal },
   progressRow: { display: "flex", gap: 6, marginTop: 14 },
   progressTick: { height: 4, flex: 1, borderRadius: 2, transition: "background 0.3s ease" },
-  introWrap: { marginTop: 40, flex: 1, display: "flex", flexDirection: "column" },
+  introWrap: { marginTop: 26, flex: 1, display: "flex", flexDirection: "column" },
   introTitle: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 30, lineHeight: 1.25, margin: "0 0 16px" },
-  introSub: { fontSize: 15, color: TOKENS.mute, lineHeight: 1.6, margin: 0 },
+  introSub: { fontSize: 15, color: TOKENS.mute, lineHeight: 1.6, margin: 0, maxWidth: 330 },
   stepWrap: { marginTop: 36, flex: 1, display: "flex", flexDirection: "column" },
   stepLabel: { fontFamily: "'Roboto Mono', monospace", fontSize: 12, letterSpacing: "0.1em", color: TOKENS.mute, marginBottom: 10 },
   question: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 25, lineHeight: 1.2, textTransform: "uppercase", margin: "0 0 28px" },
@@ -1555,14 +1573,22 @@ const styles = {
   fallbackTitle: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 21, margin: "14px 0 10px", textTransform: "uppercase" },
   fallbackText: { fontSize: 14.5, color: TOKENS.mute, lineHeight: 1.6, margin: 0 },
   introLogo: { display: "flex", justifyContent: "center", marginBottom: 22 },
-  introMascoteRow: { display: "flex", alignItems: "center", gap: 16, marginBottom: 30, flexWrap: "wrap" },
-  introTitleLado: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 27, lineHeight: 1.18, margin: "0 0 10px", color: TOKENS.white, minWidth: 190, flex: 1 },
+  introCard: { background: TOKENS.panel, border: `1px solid ${TOKENS.steel}`, borderRadius: 18,
+    padding: "30px 24px 28px", boxShadow: "0 4px 18px rgba(23,43,77,0.07)",
+    display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 24 },
+  mascoteWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 22 },
+  balao: { position: "relative", background: "#EFF6FF", border: `1px solid #CFE2F7`, borderRadius: 14,
+    padding: "12px 16px", fontSize: 14, lineHeight: 1.5, color: TOKENS.white, maxWidth: 290,
+    fontStyle: "italic" },
+  introTitulo: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 28, lineHeight: 1.2, margin: "0 0 10px", color: TOKENS.white },
   diagnostico: { fontSize: 14.5, color: TOKENS.mute, lineHeight: 1.6, marginBottom: 18 },
   subtituloRec: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 15, letterSpacing: "0.03em", marginBottom: 12, color: TOKENS.white },
   medidaTag: { fontFamily: "'Roboto Mono', monospace", fontSize: 12, fontWeight: 700, color: TOKENS.white, background: "#EDF2F8", borderRadius: 5, padding: "3px 10px" },
   verMais: { width: "100%", marginTop: 4, marginBottom: 6, padding: "13px 16px", borderRadius: 10, background: "transparent", color: TOKENS.teal, fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 13.5, border: `1px dashed ${TOKENS.steel}`, cursor: "pointer" },
   avisoMedida: { fontSize: 12.5, color: TOKENS.mute, lineHeight: 1.5, marginBottom: 14, paddingLeft: 2 },
   subtituloAlt: { fontFamily: "'Roboto Mono', monospace", fontSize: 11, letterSpacing: "0.1em", color: TOKENS.mute, margin: "18px 0 10px" },
+  fotoProduto: { width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 10,
+    marginBottom: 14, background: "#FFFFFF", border: `1px solid ${TOKENS.steel}` },
   produtoNome: { fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: 20, lineHeight: 1.25, color: TOKENS.white, marginTop: 2 },
   precoLinha: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 30, marginTop: 10, backgroundImage: GRAD, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" },
   porquesBox: { marginTop: 16, borderTop: `1px solid ${TOKENS.steel}`, paddingTop: 14, display: "flex", flexDirection: "column", gap: 9 },
